@@ -324,7 +324,7 @@ void printCoordinates(const Point& point){
 template<typename Point>
 void printCoordinates(const std::vector<Point>& vPoints)
 {
-    for (int i = 0; i < vPoints.size(); ++i)
+    for (size_t i = 0; i < vPoints.size(); ++i)
     {
          std::cout << (i+1) << ". ";
          printCoordinates(vPoints[i]);

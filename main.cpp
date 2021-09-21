@@ -23,8 +23,7 @@ int main()
 
     pcl::visualization::CloudViewer viewer( "Kugelmodell" );
 
-    do
-    {
+    do{
         cout << "Introduce the Polygon file \".ply\" name (including the path): ";
         cin >> pointCloudFileName;
 
@@ -34,6 +33,7 @@ int main()
         {
 
             viewer.showCloud( cloud, "Kugelmodell" ); //show cloud in viewer
+            cout << "Point Cloud showed in Viewer \n";
 
             vector<Eigen::Vector4f> pickedPoints; //store the approximate coordinates of the spheres center
 
@@ -83,6 +83,7 @@ int main()
                 //I use the values of 1 or 2 for the min radius in my tests
                 cout << "Introduce the min radius: ";
                 cin >> minRadius;
+
                 //I use the value of 3 or 4 for the max radius in my tests
                 cout << "Introduce the max radius (should be greater than min radius): ";
                 cin >> maxRadius;
@@ -91,35 +92,8 @@ int main()
                 if ( !DetectSpheresAndPrint2StdOutput(vCroppedClouds,viewer,minRadius,maxRadius) )
                 {
                     //Sphere detection fail
-                    //cerr << "Spheres Not Detected. Change crooping size, min radius and/or max radius parameters: \n";
                     continue;
                 }
-
-//                for (size_t i = 0; i < vCroppedClouds.size(); ++i)
-//                {
-//                    //Store center of the sphere and radius
-//                    SphereData sphereData;
-
-//                    if ( DetectSphere( vCroppedClouds[i], minRadius, maxRadius, sphereData ) )
-//                    {
-//                        //Sphere Detection Success. Print output
-
-//                        cout << "********<>********<>********<>********<>********<>********<>********\n"
-//                             << "Coordinates of the Center of the Spheres after sphere detection \n";
-//                        printCoordinates( sphereData.m_coordinates );
-
-//                        //Show results on viewer - cropped cloud in green and detected sphere in red
-//                        string cloudId = "CroppedCloud" + to_string(i);
-//                        viewer.showCloud( vCroppedClouds[i], cloudId );
-
-//                    }
-//                    else
-//                    {
-//                        //Sphere detection fail
-//                        cerr << "Spheres Not Detected. Change crooping size, min radius and/or max radius parameters: \n";
-//                        continue;
-//                    }
-//                }
 
                 cout << "********<>********<>********<>********<>********<>********<>********\n";
                 cout << "Try another sphere detection with new detection parameters? (yes = y):  ";
