@@ -12,6 +12,7 @@
 #include <pcl/sample_consensus/sac_model_normal_sphere.h>
 #include <pcl/sample_consensus/ransac.h>
 #include <pcl/sample_consensus/sac_model_sphere.h>
+#include <pcl/visualization/cloud_viewer.h>
 
 
 using Point_t = pcl::PointXYZRGBA;
@@ -171,7 +172,7 @@ std::vector<pcl::PointCloud<NPoint_t>::Ptr> ComputeNormals(pcl::PointCloud<Point
     return vNormals;
 }
 
-bool DetectSphere(pcl::PointCloud<Point_t>::Ptr cloud,double minRadius,double maxRadius, SphereData& sphereData)
+bool DetectSphere( pcl::PointCloud<Point_t>::Ptr cloud,double minRadius,double maxRadius, SphereData& sphereData )
 {
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     pcl::SACSegmentation<Point_t> segmentation;
@@ -193,7 +194,7 @@ bool DetectSphere(pcl::PointCloud<Point_t>::Ptr cloud,double minRadius,double ma
 
     if (inliersIndices.indices.size() == 0)
     {
-        std::cout << "Sphere Not Detected: \n";
+        std::cout << "Sphere Detection Fail!!!: \n";
         return false;
     }
     else
@@ -270,7 +271,7 @@ bool DetectSphere(pcl::PointCloud<Point_t>::Ptr cloud,double minRadius,double ma
 
 //}
 
-//Sphere Detection using normals not working
+//Sphere Detection using normals not working with the example I have been working with.
 bool DetectSphere(pcl::PointCloud<Point_t>::Ptr cloud, pcl::PointCloud<NPoint_t>::Ptr normals)
 {
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
@@ -279,13 +280,12 @@ bool DetectSphere(pcl::PointCloud<Point_t>::Ptr cloud, pcl::PointCloud<NPoint_t>
     segmentation.setInputCloud(cloud);
     segmentation.setInputNormals(normals);
     segmentation.setModelType(pcl::SACMODEL_NORMAL_SPHERE);
-    //segmentation.setModelType(pcl::SACMODEL_SPHERE);
     segmentation.setMethodType(pcl::SAC_RANSAC);
     segmentation.setDistanceThreshold(0.1);
     segmentation.setOptimizeCoefficients(true);
-    segmentation.setRadiusLimits(0.1, 6.0);
+    segmentation.setRadiusLimits(2, 3);
     segmentation.setEpsAngle(15 / (180/3.141592654));
-    segmentation.setMaxIterations(100000);
+    segmentation.setMaxIterations(1000000);
 
     pcl::PointIndices inliersIndices;
 
@@ -317,4 +317,52 @@ bool DetectSphere(pcl::PointCloud<Point_t>::Ptr cloud, pcl::PointCloud<NPoint_t>
 
 }
 
+template<typename Point>
+void printCoordinates(const Point& point){
+    std::cout << "[ x = " << point.x()<< ", y = " << point.y() << ", z = " << point.z() << "] \n";
+}
+template<typename Point>
+void printCoordinates(const std::vector<Point>& vPoints)
+{
+    for (int i = 0; i < vPoints.size(); ++i)
+    {
+         std::cout << (i+1) << ". ";
+         printCoordinates(vPoints[i]);
+    }
+}
+
+bool DetectSpheresAndPrint2StdOutput( std::vector<pcl::PointCloud<Point_t>::Ptr>& vClouds,pcl::visualization::CloudViewer& viewer,
+                                      double minRadius,double maxRadius)
+{
+
+    std::cout << "********<>********<>********<>********<>********<>********<>********\n"
+         << "Coordinates of the Center and radius of the Spheres after detection \n";
+
+    //Try to detect spheres in the cropped cloud and show in visualizer
+    for (size_t i = 0; i < vClouds.size(); ++i)
+    {
+        //Store center of the sphere and radius
+        SphereData sphereData;
+
+        if ( DetectSphere( vClouds[i], minRadius, maxRadius, sphereData ) )
+        {
+            //Sphere Detection Success. Print output
+            std::cout << (i+1) << ". ";
+            printCoordinates( sphereData.m_coordinates );
+            cout << (i+1) << ". " << "r = " << sphereData.m_radius << "\n";
+
+            //Show results on viewer - cropped cloud in green and detected sphere in red
+            std::string cloudId = "CroppedCloud" + std::to_string(i);
+            viewer.showCloud( vClouds[i], cloudId );
+
+        }
+        else
+        {
+            //Sphere detection fail
+            cerr << "Sphere " << (i+1) << " not detected. You must change the detection parameters!!!: \n";
+            return false;
+        }
+    }
+    return true;
+}
 #endif // SPHERESDETECTIONUTILS_H

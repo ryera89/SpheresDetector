@@ -3,7 +3,7 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/filters/crop_box.h>
-
+#include <algorithm>
 #include "SpheresDetectionUtils.h"
 
 /*Spheres detector in 3D scanned images using PCL library*/
@@ -35,7 +35,7 @@ int main()
 
             viewer.showCloud( cloud, "Kugelmodell" ); //show cloud in viewer
 
-            vector<Eigen::Vector4f> points; //store the approximate coordinates of the spheres center
+            vector<Eigen::Vector4f> pickedPoints; //store the approximate coordinates of the spheres center
 
             bool pickedPointFileOpened = false; //flag in case of error opening the .pp file
 
@@ -44,20 +44,34 @@ int main()
                 cout << "Introduce the Picked Points file \".pp\" name (including the path): ";
                 cin >> pickedPointsFileName;
 
-                pickedPointFileOpened = ReadPickedPointsFile( pickedPointsFileName, points );
+                pickedPointFileOpened = ReadPickedPointsFile( pickedPointsFileName, pickedPoints );
 
-                if ( !pickedPointFileOpened ) cerr << "Error loading .pp file introduce a valid file name \n";
+                //Check if file was opened succefully
+                if ( !pickedPointFileOpened )
+                {
+                    cerr << "Error loading .pp file introduce a valid file name \n";
+                    continue;
+                }
+                else
+                {
+                    //print the initial approximate coordinates of the sphere
+                    cout << "********<>********<>********<>********<>********<>********<>********\n"
+                         << "Initial Aproximation of the coordinates of the Center of the Spheres \n";
+                    printCoordinates( pickedPoints );
+                    cout << "********<>********<>********<>********<>********<>********<>********\n";
+
+                }
+
             }
-
 
             while ( changeDetectionParameters )
             {
-                //I use the value of 4 for the cropping size in my tests
+                //I use the value of 4-5 for the cropping size in my tests
                 cout << "Introduce the Submeshes half cropping size: ";
                 cin >> halfCroppingSize;
 
                 //Crop cloud boxes with center at the given points
-                std::vector<pcl::PointCloud<Point_t>::Ptr> vCroppedClouds = CroppedClouds(points,cloud,halfCroppingSize);
+                std::vector<pcl::PointCloud<Point_t>::Ptr> vCroppedClouds = CroppedClouds( pickedPoints, cloud, halfCroppingSize );
 
                 //Show results on viewer - cropped cloud in green
                 for (size_t i = 0; i < vCroppedClouds.size(); ++i)
@@ -74,42 +88,45 @@ int main()
                 cin >> maxRadius;
 
                 //Try to detect spheres in the cropped cloud and show in visualizer
-                for (size_t i = 0; i < vCroppedClouds.size(); ++i)
+                if ( !DetectSpheresAndPrint2StdOutput(vCroppedClouds,viewer,minRadius,maxRadius) )
                 {
-                    //Store center of the sphere and radius
-                    SphereData sphereData;
-
-                    if ( DetectSphere( vCroppedClouds[i], minRadius, maxRadius, sphereData ) )
-                    {
-                        //Sphere Detection Success. Print output
-
-                        cout << "********<>********<>********<>********<>********<>********<>********\n";
-                        cout << "Sphere " + to_string(i) << "\n";
-                        cout << "Sphere Center: " << "[ x = " << sphereData.m_coordinates.x()
-                             << ", y = " << sphereData.m_coordinates.y() << ", z = " << sphereData.m_coordinates.z() << "] \n"
-                             << "Sphere Radius = " << sphereData.m_radius << "\n";
-                        //Show results on viewer - cropped cloud in green and detected sphere in red
-                        string cloudId = "CroppedCloud" + to_string(i);
-                        viewer.showCloud( vCroppedClouds[i], cloudId );
-
-                    }
-                    else
-                    {
-                        //Sphere detection fail
-                        cerr << "Spheres Not Detected. Change crooping size, min radius and/or max radius parameters: \n";
-                        continue;
-                    }
+                    //Sphere detection fail
+                    //cerr << "Spheres Not Detected. Change crooping size, min radius and/or max radius parameters: \n";
+                    continue;
                 }
 
+//                for (size_t i = 0; i < vCroppedClouds.size(); ++i)
+//                {
+//                    //Store center of the sphere and radius
+//                    SphereData sphereData;
+
+//                    if ( DetectSphere( vCroppedClouds[i], minRadius, maxRadius, sphereData ) )
+//                    {
+//                        //Sphere Detection Success. Print output
+
+//                        cout << "********<>********<>********<>********<>********<>********<>********\n"
+//                             << "Coordinates of the Center of the Spheres after sphere detection \n";
+//                        printCoordinates( sphereData.m_coordinates );
+
+//                        //Show results on viewer - cropped cloud in green and detected sphere in red
+//                        string cloudId = "CroppedCloud" + to_string(i);
+//                        viewer.showCloud( vCroppedClouds[i], cloudId );
+
+//                    }
+//                    else
+//                    {
+//                        //Sphere detection fail
+//                        cerr << "Spheres Not Detected. Change crooping size, min radius and/or max radius parameters: \n";
+//                        continue;
+//                    }
+//                }
+
                 cout << "********<>********<>********<>********<>********<>********<>********\n";
-                cout << "Do you wish to change detection parameters crooping size, \n"
-                        " min radius and/or max radius and perform another sphere detection (yes = y):  ";
+                cout << "Try another sphere detection with new detection parameters? (yes = y):  ";
                 cin >> answer;
                 if (answer != 'y') changeDetectionParameters = false;
 
             }
-
-
 
             cout << "Do you wish to analize another .ply file (yes = y): ";
             cin >> answer;
